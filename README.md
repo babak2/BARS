@@ -1,6 +1,18 @@
 # BARS
 ## Building Agent-based Models for Racialized Justice Systems
 
+
+This repository is a *forked and independently maintained version* of the original BARS project. The original upstream repository is no longer actively used for my development, and my contributions have **not** been merged upstream.
+
+This fork includes:
+- Extended jail and incarceration dynamics
+- Structural and behavioural model changes
+- Independent experiments and calibration workflows
+
+**Active development happens on the `development` branch.**
+
+Maintained by: **Babak Mahdavi Ardestani**
+
 This is a repository of code for modeling the impact of incarceration on HIV among Black men who have sex with men (MSM) in Chicago, Houston and Los Angeles (PI Kayo Fujimoto, Nina Harawa, John Schneider). 
 
 Detainees and former detainees are a transient population. Incarceration and recidivism have the potential to continually disrupt social and social networks of detainees, with associated increases in high-risk sexual behavior, and turnover in relationships that provide social support. Detainees have a higher prevalence of HIV than the general population. However, correctional facilities may also provide an opportunity for sustained engagement in clinical care for HIV-infected individuals, and preexposure prophylaxis (PrEP) for persons at risk. 
@@ -42,7 +54,6 @@ The population is initialized in the R code in the `r/` directory, and dynamical
    [Nicholson Collier](https://github.com/ncollier), Argonne National Laboratory    
    [Jonathan Ozik](https://github.com/jozik), Argonne National Laboratory   
     
-This version with added jail components is maintained by Babak Mahdavi Ardestani (babak.m.ardestani@gmail.com)
 
 ### Funding
 This work is supported by NIH R01 DA 039 934.
