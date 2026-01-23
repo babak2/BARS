@@ -47,7 +47,7 @@ The population is initialized in the R code in the `r/` directory, and dynamical
    You can contact the authors via
 e-mail at <akhanna@medicine.bsd.uchicago.edu>. 
 
-This version with added jail components is maintained by Babak Mahdavi Ardestani e-mail at <babak.m.ardestani@gmail.com>
+This version with added jail components is maintained by Babak Mahdavi Ardestani (babak.m.ardestani@gmail.com)
 
 ### Funding
 This work is supported by NIH R01 DA 039 934.
