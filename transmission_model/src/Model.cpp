@@ -43,6 +43,7 @@
 #include "Serializer.h"
 
 #include "CSVWriter.h"
+#include "NetworkHelper.h"
 
 //#include "EventWriter.h"
 
@@ -59,6 +60,7 @@ const double VS_VL_COUNT = std::log10(2) + 2;
 
 //CSVWriter csvwriter("jailStatsTest.csv"); //temp csv writer for test
 //CSVWriter csvwriter("infec_incidence.csv"); //temp csv writer for test
+CSVWriter csvwriter2("network_end.csv"); //temp csv writer for test
 //int new_infected_this_cycle=0; //couting total infections, includig externals during one cycle sim
 
 PartnershipEvent::PEventType cod_to_PEvent(CauseOfDeath cod) {
@@ -196,11 +198,22 @@ void init_stats() {
     //std::vector<std::string> header = {"tick", "newJailed", "nextDayRelease", "jailedPop", "generalPop", "totalPop", 
                                       // "popChange", "entries", "ageDeaths", "infectDeaths", "asmDeaths", "totalDeaths"};
     //std::vector<std::string> header = {"baseline"};
-    std::vector<std::string> header = {"inc_rate", "incar_rate", "jail_pop",  
-    "tot_new_inf_jail", "tot_new_infected", "uninfected_c", "tot_pop",
-    "internal_infected", "external_infected", "infected_at_entry", "uninfected"};
+   // std::vector<std::string> header = {"inc_rate", "incar_rate", "jail_pop",  
+   // "tot_new_inf_jail", "tot_new_infected", "uninfected_c", "tot_pop",
+   // "internal_infected", "external_infected", "infected_at_entry", "uninfected"};
 
-    //csvwriter.addHeader(header);
+   /* std::vector<std::string> header = {"id", "age", "steady_role",  
+    "causal_role", "score", "is_infected", "isCircumcised",  "isTestable", "infectivity", 
+    "isOnPrep", "prep_startTime", "prep_stopTime", "prepEffectiveness",
+    "isOnArt", "infect_status", "art_status", "infect_timeSinceInfect", "infect_timeSinceInfect",
+    "time_of_art_init", "time_since_art_init", "time_of_diagnosis", "time_since_diagnosed", "dur_inf", "virtal_load",
+    "vrl_art_traj_slop", "cd4_count", "time_of_infect", "age_of_infect", "art_lag",  "art_forced_off",
+    }; */
+
+
+    std::vector<std::string> header = {"id", "age", "steady_role",  
+    "causal_role", "score", "is_infected", "isCircumcised",  "isTestable", "infectivity" };
+
 }
 
 void add_log(const std::string& fname, const std::string& header, 
@@ -801,8 +814,229 @@ Model::Model(shared_ptr<RInside>& ri, const std::string& net_var, const std::str
     rnet = as<List>((*R)[cas_net_var]);
     initialize_edges(rnet, net, condom_assigner, CASUAL_NETWORK_TYPE);
 
+    std::cout << "BBB***network vertexCount= " << net.vertexCount() <<'\n';
+    std::cout << "BBB***network edgeCount= " << net.edgeCount() <<'\n';
+
+    std::cout << "BBB***************pop: " <<population.size() <<'\n';
+
     population.insert(population.end(), net.verticesBegin(), net.verticesEnd());
     initialize_jail(jail, rnet, population);
+
+    std::cout << "BBB*****MODEL init**********pop: " <<population.size() <<'\n';
+   
+    int nb_inf =0;
+    int nb_uninf =0;
+    int nb_circumc=0;
+    int nb_dead=0;
+    int nb_onArt=0;
+    int nb_onPrep=0;
+    int nb_inJail=0;
+    int nb_testable=0;
+    int nb_diagnose=0;
+    int infectivity_gt0=0;
+    int adh_always=0;
+    int adh_never=0;
+    int adh_partial_plus=0;
+    int adh_partial_min=0;
+    int adh_na=0;
+    int prep_on=0;
+    int prep_on_interv=0;
+    int prep_off=0;
+    int prep_off_infec=0;
+
+
+//OFF, OFF_INFECTED, ON, ON_INTERVENTION
+
+    for (auto iter = population.begin(); iter != population.end(); ++iter) {
+        PersonPtr person = (*iter);
+        //std::cout << "BBB***************person ID: " << person->id() <<'\n';
+        //std::cout << "BBB***************age: " << person->age() <<'\n';
+        //std::cout << "BBB***************isInfected: " << person->isInfected() <<'\n';
+
+        // update viral load, cd4
+        if (person->isInfected()) 
+            ++nb_inf;
+        if (!person->isInfected()) 
+            ++nb_uninf;
+        if (person->isCircumcised()) 
+            ++nb_circumc;
+        if (person->isDead()) 
+            ++nb_dead;
+        if (person->isOnART(false)) 
+            ++nb_onArt;
+        if (person->isOnPrep(false)) 
+            ++nb_onPrep;
+        if (person->isTestable()) 
+            ++nb_testable; 
+        if (person->isDiagnosed()) 
+            ++nb_diagnose; 
+        if (person->isJailed()) 
+            ++nb_inJail; 
+        if (person->infectivity()>0) 
+            ++infectivity_gt0; 
+
+        if (person->artAdherence().category == AdherenceCategory::ALWAYS) 
+            ++adh_always; 
+        if (person->artAdherence().category == AdherenceCategory::NEVER) 
+            ++adh_never; 
+        if (person->artAdherence().category == AdherenceCategory::PARTIAL_PLUS) 
+            ++adh_partial_plus; 
+        if (person->artAdherence().category == AdherenceCategory::PARTIAL_MINUS) 
+            ++adh_partial_min; 
+        if (person->artAdherence().category == AdherenceCategory::NA) 
+            ++adh_na; 
+
+        if (person->prepStatus() == PrepStatus::ON) 
+            ++prep_on; 
+        if (person->prepStatus() == PrepStatus::ON_INTERVENTION) 
+            ++prep_on_interv; 
+        if (person->prepStatus() == PrepStatus::OFF) 
+            ++prep_off; 
+        if (person->prepStatus() == PrepStatus::OFF_INFECTED) 
+            ++prep_off_infec; 
+                
+    }
+
+    std::cout << "    BBB*******nb_inf: " << nb_inf <<'\n';
+    std::cout << "    BBB*******nb_uninf: " << nb_uninf <<'\n';
+    std::cout << "    BBB*******nb_circumc: " << nb_circumc <<'\n';
+    std::cout << "    BBB*******nb_dead: " << nb_dead <<'\n';
+    std::cout << "    BBB*******nb_onArt: " << nb_onArt <<'\n';
+    std::cout << "    BBB*******nb_onPrep: " << nb_onPrep <<'\n';
+    std::cout << "    BBB*******nb_testable: " << nb_testable <<'\n';
+    std::cout << "    BBB*******nb_diagnose: " << nb_diagnose <<'\n';
+    std::cout << "    BBB*******nb_inJail: " << nb_inJail <<'\n';
+    std::cout << "    BBB*******infectivity_gt0: " << infectivity_gt0 <<'\n';
+    std::cout << "    BBB*******adh_always: " << adh_always <<'\n';
+    std::cout << "    BBB*******adh_never: " << adh_never <<'\n';
+    std::cout << "    BBB*******adh_partial_plus: " << adh_partial_plus <<'\n';
+    std::cout << "    BBB*******adh_partial_min: " << adh_partial_min <<'\n';
+    std::cout << "    BBB*******adh_na: " << adh_na <<'\n';
+    std::cout << "    BBB*******prep_on: " << prep_on <<'\n';
+    std::cout << "    BBB*******prep_on_interv: " << prep_on_interv <<'\n';
+    std::cout << "    BBB*******prep_off: " << prep_off <<'\n';
+    std::cout << "    BBB*******prep_off_infec: " << prep_off_infec <<'\n';
+
+
+  int i=0;
+  //if (tick== 0) {
+    for (auto iter = population.begin(); iter != population.end(); ++iter) {
+        PersonPtr person = (*iter);
+        
+        std::cout << person->id() << " ----------------"  <<'\n';
+
+       if (person->infectivity()>0) {
+          std::cout << person->id() << ", BBB***************infectivity : " << person->infectivity() <<'\n';
+       }
+
+        if (person->isOnPrep(false)) {
+            std::cout << person->id() << ", BBB***************prepParameters.startTime: " << person->prepParameters().startTime() <<'\n';
+            std::cout << person->id() << ", BBB***************prepParameters.stopTime: " << person->prepParameters().stopTime() <<'\n';
+            std::cout << person->id() << ", BBB***************prepParameters.prepEffectiveness: " << person->prepParameters().prepEffectiveness() <<'\n';
+           // std::cout << person->id() << ", BBB***************prepParameters.status: " << person->prepParameters().status() <<'\n';
+        }
+
+        if (person->isOnART(false)) {
+            std::cout << person->id() << ", BBB***************infectParameters.infection_status: " << person->infectionParameters().infection_status <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_status: " << person->infectionParameters().art_status <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_infection: " << person->infectionParameters().time_since_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_art_init: " << person->infectionParameters().time_since_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_diagnosed: " << person->infectionParameters().time_since_diagnosed <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.dur_inf: " << person->infectionParameters().dur_inf <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.viral_load: " << person->infectionParameters().viral_load <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.vl_art_traj_slope: " << person->infectionParameters().vl_art_traj_slope <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.cd4_count: " << person->infectionParameters().cd4_count <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_infection: " << person->infectionParameters().time_of_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.age_at_infection: " << person->infectionParameters().age_at_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_art_init: " << person->infectionParameters().time_of_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.cd4_at_art_init: " << person->infectionParameters().cd4_at_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.vl_at_art_init: " << person->infectionParameters().vl_at_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_lag: " << person->infectionParameters().art_lag <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_diagnosis: " << person->infectionParameters().time_of_diagnosis <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_forced_off: " << person->infectionParameters().art_forced_off <<'\n';
+
+        }
+
+        ++i;
+        if (i>=50)
+          break;
+    }
+
+     std::cout << " ======================================================"  <<'\n';
+
+  
+int j=0;
+  //if (tick== 0) {
+    for (auto iter = population.begin(); iter != population.end(); ++iter) {
+        PersonPtr person = (*iter);
+        
+        std::cout << person->id() << " +++++++++++++++++++"  <<'\n';
+        std::cout << "BBB***************age : " << person->age() <<'\n';
+        std::cout << "BBB***************steady_role : " << person->steady_role() <<'\n';
+        std::cout << "BBB***************casual_role : " << person->casual_role() <<'\n';
+        std::cout << "BBB***************role : " << person->score() <<'\n';
+        std::cout << "BBB***************isInfected : " << person->isInfected() <<'\n';
+
+        std::cout << person->id() << ", BBB***************isCircumcised: " << person->isCircumcised() <<'\n';
+        std::cout << person->id() << ", BBB***************isTestable: " << person->isTestable() <<'\n';
+        std::cout << person->id() << ", BBB***************isTestable: " << person->isTestable() <<'\n';
+
+
+        if (person->artAdherence().category == AdherenceCategory::ALWAYS) 
+            std::cout << person->id() << ", artAdh: Always" <<'\n';
+        if (person->artAdherence().category == AdherenceCategory::NEVER) 
+            std::cout << person->id() << ", artAdh: Never" <<'\n';
+        if (person->artAdherence().category == AdherenceCategory::PARTIAL_PLUS) 
+            std::cout << person->id() << ", artAdh: Partial+" <<'\n';
+        if (person->artAdherence().category == AdherenceCategory::PARTIAL_MINUS) 
+            std::cout << person->id() << ", artAdh: Partial-" <<'\n';
+
+        if (person->prepStatus() == PrepStatus::ON) 
+            std::cout << person->id() << ", prepStatus: ON-" <<'\n';
+        if (person->prepStatus() == PrepStatus::ON_INTERVENTION) 
+            std::cout << person->id() << ", prepStatus: ON_INTERVENTION-" <<'\n';
+        if (person->prepStatus() == PrepStatus::OFF) 
+            std::cout << person->id() << ", prepStatus: OFF-" <<'\n';
+        if (person->prepStatus() == PrepStatus::OFF_INFECTED) 
+            std::cout << person->id() << ", prepStatus: OFF_-" <<'\n';
+
+
+        std::cout << person->id() << ", BBB***************infectivity : " << person->infectivity() <<'\n';
+       
+            std::cout << person->id() << ", BBB***************isOnPrep(false): " << person->isOnPrep(false) <<'\n';
+
+            std::cout << person->id() << ", BBB***************prepParameters.startTime: " << person->prepParameters().startTime() <<'\n';
+            std::cout << person->id() << ", BBB***************prepParameters.stopTime: " << person->prepParameters().stopTime() <<'\n';
+            std::cout << person->id() << ", BBB***************prepParameters.prepEffectiveness: " << person->prepParameters().prepEffectiveness() <<'\n';
+           // std::cout << person->id() << ", BBB***************prepParameters.status: " << person->prepParameters().status() <<'\n';
+        
+          std::cout << person->id() << ", BBB***************isOnART(false): " << person->isOnART(false) <<'\n';
+
+
+            std::cout << person->id() << ", BBB***************infectParameters.infection_status: " << person->infectionParameters().infection_status <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_status: " << person->infectionParameters().art_status <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_infection: " << person->infectionParameters().time_since_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_art_init: " << person->infectionParameters().time_since_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_diagnosed: " << person->infectionParameters().time_since_diagnosed <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.dur_inf: " << person->infectionParameters().dur_inf <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.viral_load: " << person->infectionParameters().viral_load <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.vl_art_traj_slope: " << person->infectionParameters().vl_art_traj_slope <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.cd4_count: " << person->infectionParameters().cd4_count <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_infection: " << person->infectionParameters().time_of_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.age_at_infection: " << person->infectionParameters().age_at_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_art_init: " << person->infectionParameters().time_of_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.cd4_at_art_init: " << person->infectionParameters().cd4_at_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.vl_at_art_init: " << person->infectionParameters().vl_at_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_lag: " << person->infectionParameters().art_lag <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_diagnosis: " << person->infectionParameters().time_of_diagnosis <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_forced_off: " << person->infectionParameters().art_forced_off <<'\n';
+
+        ++j;
+        if (j>=55)
+          break;
+        
+    }
+
 
     init_stage_map(stage_map);
     init_network_save(&jail, &net, R);
@@ -953,8 +1187,309 @@ void Model::step() {
 
     stats->resetForNextTimeStep();
 
+
+    
+    /*std::cout << "t= " << t << ", pop= " <<population.size();
+    int doubleEdgeCount =0;
+    float popSize = population.size();
+    for (auto iter = population.begin(); iter != population.end(); ++iter) {
+        PersonPtr person = (*iter);
+        if (NetworkHelper::hasDoubleEdgesForSameNodes(person, &net)) {
+            doubleEdgeCount++;
+
+        }
+    }
+    std::cout << ", persons with doubleEdges= " << doubleEdgeCount <<", prop= " << doubleEdgeCount/popSize <<'\n'; */
+            
+        
+    //std::cout << "entries= "  << entries << '\n';
+    //std::vector<float> popVals;
+    //popVals.push_back(t);
+    //popVals.push_back(population.size());
+    //popVals.push_back(person->age());
+    //popVals.push_back(person->steady_role());
+    //popVals.push_back(person->casual_role());
+    //popVals.push_back(person->score());
+    //popVals.push_back(person->isInfected());
+   
+    //csvwriter2.addRow(popVals);
+
+    
+
+
+
     //new_infected_this_cycle=0;
 
+  /*persons with doubleEdges
+    std::cout << "BBB************STEP********t= " << t << ", pop= " <<population.size() <<'\n';
+
+    int nb_inf =0;
+    int nb_uninf =0;
+    int nb_circumc=0;
+    int nb_dead=0;
+    int nb_onArt=0;
+    int nb_onPrep=0;
+    int nb_inJail=0;
+    int nb_testable=0;
+    int nb_diagnose=0;
+    int infectivity_gt0=0;
+    int adh_always=0;
+    int adh_never=0;
+    int adh_partial_plus=0;
+    int adh_partial_min=0;
+    int adh_na=0;
+    int prep_on=0;
+    int prep_on_interv=0;
+    int prep_off=0;
+    int prep_off_infec=0;
+
+    //OFF, OFF_INFECTED, ON, ON_INTERVENTION
+
+    for (auto iter = population.begin(); iter != population.end(); ++iter) {
+        PersonPtr person = (*iter);
+        //std::cout << "BBB***************person ID: " << person->id() <<'\n';
+        //std::cout << "BBB***************age: " << person->age() <<'\n';
+        //std::cout << "BBB***************isInfected: " << person->isInfected() <<'\n';
+
+        // update viral load, cd4
+        if (person->isInfected()) 
+            ++nb_inf;
+        if (!person->isInfected()) 
+            ++nb_uninf;
+        if (person->isCircumcised()) 
+            ++nb_circumc;
+        if (person->isDead()) 
+            ++nb_dead;
+        if (person->isOnART(false)) 
+            ++nb_onArt;
+        if (person->isOnPrep(false)) 
+            ++nb_onPrep;
+        if (person->isTestable()) 
+            ++nb_testable; 
+        if (person->isDiagnosed()) 
+            ++nb_diagnose; 
+        if (person->isJailed()) 
+            ++nb_inJail; 
+        if (person->infectivity()>0) 
+            ++infectivity_gt0; 
+
+        if (person->artAdherence().category == AdherenceCategory::ALWAYS) 
+            ++adh_always; 
+        if (person->artAdherence().category == AdherenceCategory::NEVER) 
+            ++adh_never; 
+        if (person->artAdherence().category == AdherenceCategory::PARTIAL_PLUS) 
+            ++adh_partial_plus; 
+        if (person->artAdherence().category == AdherenceCategory::PARTIAL_MINUS) 
+            ++adh_partial_min; 
+        if (person->artAdherence().category == AdherenceCategory::NA) 
+            ++adh_na; 
+
+        if (person->prepStatus() == PrepStatus::ON) 
+            ++prep_on; 
+        if (person->prepStatus() == PrepStatus::ON_INTERVENTION) 
+            ++prep_on_interv; 
+        if (person->prepStatus() == PrepStatus::OFF) 
+            ++prep_off; 
+        if (person->prepStatus() == PrepStatus::OFF_INFECTED) 
+            ++prep_off_infec; 
+                
+    }
+
+    std::cout << "    BBB*******nb_inf: " << nb_inf <<'\n';
+    std::cout << "    BBB*******nb_uninf: " << nb_uninf <<'\n';
+    std::cout << "    BBB*******nb_circumc: " << nb_circumc <<'\n';
+    std::cout << "    BBB*******nb_dead: " << nb_dead <<'\n';
+    std::cout << "    BBB*******nb_onArt: " << nb_onArt <<'\n';
+    std::cout << "    BBB*******nb_onPrep: " << nb_onPrep <<'\n';
+    std::cout << "    BBB*******nb_testable: " << nb_testable <<'\n';
+    std::cout << "    BBB*******nb_diagnose: " << nb_diagnose <<'\n';
+    std::cout << "    BBB*******nb_inJail: " << nb_inJail <<'\n';
+    std::cout << "    BBB*******infectivity_gt0: " << infectivity_gt0 <<'\n';
+    std::cout << "    BBB*******adh_always: " << adh_always <<'\n';
+    std::cout << "    BBB*******adh_never: " << adh_never <<'\n';
+    std::cout << "    BBB*******adh_partial_plus: " << adh_partial_plus <<'\n';
+    std::cout << "    BBB*******adh_partial_min: " << adh_partial_min <<'\n';
+    std::cout << "    BBB*******adh_na: " << adh_na <<'\n';
+    std::cout << "    BBB*******prep_on: " << prep_on <<'\n';
+    std::cout << "    BBB*******prep_on_interv: " << prep_on_interv <<'\n';
+    std::cout << "    BBB*******prep_off: " << prep_off <<'\n';
+    std::cout << "    BBB*******prep_off_infec: " << prep_off_infec <<'\n';
+
+    int i=0;
+    //if (tick== 0) {
+    for (auto iter = population.begin(); iter != population.end(); ++iter) {
+        PersonPtr person = (*iter);
+        
+        std::cout << person->id() << " ---------step-------"  <<'\n';
+
+       if (person->infectivity()>0) {
+          std::cout << person->id() << ", BBB***************infectivity : " << person->infectivity() <<'\n';
+       }
+
+        if (person->isOnPrep(false)) {
+            std::cout << person->id() << ", BBB***************prepParameters.startTime: " << person->prepParameters().startTime() <<'\n';
+            std::cout << person->id() << ", BBB***************prepParameters.stopTime: " << person->prepParameters().stopTime() <<'\n';
+            std::cout << person->id() << ", BBB***************prepParameters.prepEffectiveness: " << person->prepParameters().prepEffectiveness() <<'\n';
+           // std::cout << person->id() << ", BBB***************prepParameters.status: " << person->prepParameters().status() <<'\n';
+        }
+
+        if (person->isOnART(false)) {
+            std::cout << person->id() << ", BBB***************infectParameters.infection_status: " << person->infectionParameters().infection_status <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_status: " << person->infectionParameters().art_status <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_infection: " << person->infectionParameters().time_since_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_art_init: " << person->infectionParameters().time_since_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_diagnosed: " << person->infectionParameters().time_since_diagnosed <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.dur_inf: " << person->infectionParameters().dur_inf <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.viral_load: " << person->infectionParameters().viral_load <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.vl_art_traj_slope: " << person->infectionParameters().vl_art_traj_slope <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.cd4_count: " << person->infectionParameters().cd4_count <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_infection: " << person->infectionParameters().time_of_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.age_at_infection: " << person->infectionParameters().age_at_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_art_init: " << person->infectionParameters().time_of_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.cd4_at_art_init: " << person->infectionParameters().cd4_at_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.vl_at_art_init: " << person->infectionParameters().vl_at_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_lag: " << person->infectionParameters().art_lag <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_diagnosis: " << person->infectionParameters().time_of_diagnosis <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_forced_off: " << person->infectionParameters().art_forced_off <<'\n';
+
+        }
+
+        ++i;
+        if (i>=50)
+          break;
+    }  */
+
+    /*std::cout << " =====================STEP================================="  <<'\n';
+    int j=0;
+    //if (tick== 0) {
+    for (auto iter = population.begin(); iter != population.end(); ++iter) {
+        PersonPtr person = (*iter);
+        
+        std::cout << person->id() << " ++++++++++Step+++++++++"  <<'\n';
+        std::cout << "BBB***************age : " << person->age() <<'\n';
+        std::cout << "BBB***************steady_role : " << person->steady_role() <<'\n';
+        std::cout << "BBB***************casual_role : " << person->casual_role() <<'\n';
+        std::cout << "BBB***************role : " << person->score() <<'\n';
+        std::cout << "BBB***************isInfected : " << person->isInfected() <<'\n';
+        std::cout << "BBB***************isDead : " << person->isDead() <<'\n';
+
+        std::cout << person->id() << ", BBB***************isCircumcised: " << person->isCircumcised() <<'\n';
+        std::cout << person->id() << ", BBB***************isTestable: " << person->isTestable() <<'\n';
+        std::cout << person->id() << ", BBB***************isTestable: " << person->isTestable() <<'\n';
+
+
+        if (person->artAdherence().category == AdherenceCategory::ALWAYS) 
+            std::cout << person->id() << ", artAdh: Always" <<'\n';
+        if (person->artAdherence().category == AdherenceCategory::NEVER) 
+            std::cout << person->id() << ", artAdh: Never" <<'\n';
+        if (person->artAdherence().category == AdherenceCategory::PARTIAL_PLUS) 
+            std::cout << person->id() << ", artAdh: Partial+" <<'\n';
+        if (person->artAdherence().category == AdherenceCategory::PARTIAL_MINUS) 
+            std::cout << person->id() << ", artAdh: Partial-" <<'\n';
+
+        if (person->prepStatus() == PrepStatus::ON) 
+            std::cout << person->id() << ", prepStatus: ON-" <<'\n';
+        if (person->prepStatus() == PrepStatus::ON_INTERVENTION) 
+            std::cout << person->id() << ", prepStatus: ON_INTERVENTION-" <<'\n';
+        if (person->prepStatus() == PrepStatus::OFF) 
+            std::cout << person->id() << ", prepStatus: OFF-" <<'\n';
+        if (person->prepStatus() == PrepStatus::OFF_INFECTED) 
+            std::cout << person->id() << ", prepStatus: OFF_-" <<'\n';
+
+
+        std::cout << person->id() << ", BBB***************infectivity : " << person->infectivity() <<'\n';
+       
+            std::cout << person->id() << ", BBB***************isOnPrep(false): " << person->isOnPrep(false) <<'\n';
+
+            std::cout << person->id() << ", BBB***************prepParameters.startTime: " << person->prepParameters().startTime() <<'\n';
+            std::cout << person->id() << ", BBB***************prepParameters.stopTime: " << person->prepParameters().stopTime() <<'\n';
+            std::cout << person->id() << ", BBB***************prepParameters.prepEffectiveness: " << person->prepParameters().prepEffectiveness() <<'\n';
+           // std::cout << person->id() << ", BBB***************prepParameters.status: " << person->prepParameters().status() <<'\n';
+        
+          std::cout << person->id() << ", BBB***************isOnART(false): " << person->isOnART(false) <<'\n';
+
+
+            std::cout << person->id() << ", BBB***************infectParameters.infection_status: " << person->infectionParameters().infection_status <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_status: " << person->infectionParameters().art_status <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_infection: " << person->infectionParameters().time_since_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_art_init: " << person->infectionParameters().time_since_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_since_diagnosed: " << person->infectionParameters().time_since_diagnosed <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.dur_inf: " << person->infectionParameters().dur_inf <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.viral_load: " << person->infectionParameters().viral_load <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.vl_art_traj_slope: " << person->infectionParameters().vl_art_traj_slope <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.cd4_count: " << person->infectionParameters().cd4_count <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_infection: " << person->infectionParameters().time_of_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.age_at_infection: " << person->infectionParameters().age_at_infection <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_art_init: " << person->infectionParameters().time_of_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.cd4_at_art_init: " << person->infectionParameters().cd4_at_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.vl_at_art_init: " << person->infectionParameters().vl_at_art_init <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_lag: " << person->infectionParameters().art_lag <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.time_of_diagnosis: " << person->infectionParameters().time_of_diagnosis <<'\n';
+            std::cout << person->id() << ", BBB***************infectParameters.art_forced_off: " << person->infectionParameters().art_forced_off <<'\n';
+
+        ++j;
+        if (j>=55)
+          break;
+        
+    } */
+
+  std::cout << t << " =====================STEP================================="  <<'\n';
+  int k=0;
+  //if (t== 0) {
+    for (auto iter = population.begin(); iter != population.end(); ++iter) {
+        PersonPtr person = (*iter);
+            
+        std::vector<float> vals;
+
+        vals.push_back(person->id());
+        vals.push_back(person->age());
+        vals.push_back(person->steady_role());
+        vals.push_back(person->casual_role());
+        vals.push_back(person->score());
+        vals.push_back(person->isInfected());
+        vals.push_back(person->isDead());
+        vals.push_back(person->isCircumcised());
+        vals.push_back(person->isTestable());
+
+        vals.push_back(person->infectivity());
+       
+        /*vals.push_back(person->isOnPrep(false));
+        vals.push_back(person->prepParameters().startTime()); 
+        vals.push_back(person->prepParameters().stopTime());
+        vals.push_back(person->prepParameters().prepEffectiveness());
+        vals.push_back(person->isOnART(false));
+        vals.push_back(person->infectionParameters().infection_status);
+        vals.push_back(person->infectionParameters().art_status);
+
+        vals.push_back(person->infectionParameters().time_since_infection);
+        vals.push_back(person->infectionParameters().time_of_art_init);
+        vals.push_back(person->infectionParameters().time_since_art_init);
+        vals.push_back(person->infectionParameters().time_of_diagnosis);
+        vals.push_back(person->infectionParameters().time_since_diagnosed);
+        vals.push_back(person->infectionParameters().dur_inf);
+        vals.push_back(person->infectionParameters().viral_load);
+        vals.push_back(person->infectionParameters().vl_art_traj_slope);
+        vals.push_back(person->infectionParameters().cd4_count);
+        vals.push_back(person->infectionParameters().time_of_infection);
+        vals.push_back(person->infectionParameters().age_at_infection);
+        vals.push_back(person->infectionParameters().vl_at_art_init);
+        vals.push_back(person->infectionParameters().art_lag);
+        vals.push_back(person->infectionParameters().art_forced_off); */
+
+
+        //std::vector<int> personNet = NetworkHelper::getPersonNetworkAsVector(person, &net);
+        //std::string personNetStr = NetworkHelper::getPersonNetworkAsString(person, &net);
+
+        //std::cout << "personNetStr= " << personNetStr <<'\n'; 
+
+        //vals.push_back(personNetStr);
+
+        csvwriter2.addRow(vals);
+
+ 
+        ++k;
+    }
+  //} 
 }
 
 void Model::schedulePostDiagnosisART(PersonPtr person, std::map<double, ARTScheduler*>& art_map, double tick,
@@ -1044,6 +1579,9 @@ void Model::doJailCheck(PersonPtr person, double tick, double incarceration_with
 }
 
 void Model::updateVitals(double tick, float size_of_timestep, int max_age, vector<PersonPtr>& uninfected) {
+    
+    int nb_uninfect=0; //BBB temp
+
     unsigned int dead_count = 0;
     
     Stats* stats = Stats::instance();
@@ -1099,6 +1637,7 @@ void Model::updateVitals(double tick, float size_of_timestep, int max_age, vecto
             // don't count dead uninfected persons
             if (!person->isInfected()) {
                 stats->currentCounts().incrementUninfected(person);
+                ++nb_uninfect; //BBB temp
                 // accumulate persons who may potentially go on PrEP
                 prep_manager.processPerson(person, net);
                 if (person->isOnPrep(true)) {  //care disruption
@@ -1149,6 +1688,9 @@ void Model::updateVitals(double tick, float size_of_timestep, int max_age, vecto
     prep_manager.run(tick, net);
     // Reset the prep uptake for next round
     prep_manager.reset();
+
+    //std::cout << tick <<", BBB****Vital:***nb_uninfect: " << nb_uninfect <<'\n';
+
 }
 
 unsigned int Model::runExternalInfections(vector<PersonPtr>& uninfected, double t) {
@@ -1203,10 +1745,15 @@ void Model::entries(double tick, float size_of_timestep) {
         PoissonGen birth_gen(Random::instance()->engine(), boost::random::poisson_distribution<>(births_prob));
         DefaultNumberGenerator<PoissonGen> gen(birth_gen);
         int entries = (int) gen.next();
+        //std::cout <<tick << "  BBB*******entries: " << entries <<'\n';
+
         Stats* stats = Stats::instance();
         stats->currentCounts().entries = entries;
 
         double infected_prob = Parameters::instance()->getDoubleParameter(INIT_HIV_PREV_ENTRIES);
+
+        //std::cout << "BBB*******Random::instance()->nextDouble(): " << Random::instance()->nextDouble() <<'\n';
+
 
         for (int i = 0; i < entries; ++i) {
             VertexPtr<Person> p = person_creator(tick, min_age);

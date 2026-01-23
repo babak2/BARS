@@ -83,6 +83,8 @@ PersonPtr PersonCreator::createPerson(Rcpp::List& val) {
 }
 
 void PersonCreator::initInfectedPerson(PersonPtr person, Rcpp::List& val, double model_tick, double burnin_last_tick) {
+    //std::cout <<" +++++++BBB*******initInfectedPerson, model_tick= " << model_tick << ",burnin_last_tick= "<< burnin_last_tick<<'\n';
+
     person->infection_parameters_.infection_status = true;
     person->infection_parameters_.time_since_infection = as<float>(val["time.since.infection"]);
     person->infection_parameters_.time_of_infection = as<float>(val["time.of.infection"]);
@@ -91,6 +93,16 @@ void PersonCreator::initInfectedPerson(PersonPtr person, Rcpp::List& val, double
     person->infection_parameters_.art_status = as<bool>(val["art.status"]);
     person->infection_parameters_.viral_load = as<float>(val["viral.load.today"]);
 
+    //bool artstat = as<bool>(val["art.status"]);
+    //std::cout <<" +++++++BBB*******initInfectedPerson, art.status: " << artstat << '\n';
+
+     if (val.containsElementNamed("infectivity")) {
+        person->infectivity_ = as<float>(val["infectivity"]);
+        //float  infect = as<float>(val["infectivity"]);
+        //std::cout <<" &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&BBB*******initInfectedPerson, infectivity: " << infect << '\n';
+     }
+
+    
     if (person->infection_parameters_.art_status) {
         // onART at end of burnin -- need to finish up and schedule check
         person->infection_parameters_.time_since_art_init = as<float>(val["time.since.art.initiation"]);

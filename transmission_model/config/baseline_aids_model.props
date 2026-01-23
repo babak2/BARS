@@ -1,10 +1,11 @@
 #global.random.seed=42
 global.random.seed=1
 
-stop.at = 36500
+#stop.at = 36500
 #stop.at = 3650 
 #stop.at = 7300 # 20 years
-#stop.at = 730
+#stop.at = 20
+stop.at = 10950
 
 net.variable.name = nw
 casual.net.variable.name = n_cas
@@ -18,8 +19,12 @@ initial.data.file = ../r/network_model/cas_net_n10000.RData
 
 # if these properties are not commented out
 # then these networks will replace existing ones (NEED to comment these out for calibration)
-main.network.file = ../r/network_model/v57-calib-inst-248-only-main_network_36500.RDS
-casual.network.file = ../r/network_model/v57-calib-inst-248-only-casual_network_36500.RDS
+#main.network.file = ../r/network_model/v57-calib-inst-248-only-main_network_36500.RDS
+#casual.network.file = ../r/network_model/v57-calib-inst-248-only-casual_network_36500.RDS
+#main.network.file = ../r/network_model/burnin_main_network_10.RDS
+#casual.network.file = ../r/network_model/burnin_casual_network_10.RDS
+#main.network.file = ../r/network_model/burnin2_main_network_10.RDS
+#casual.network.file = ../r/network_model/burnin2_casual_network_10.RDS
 #----
 
 output.directory = ./output
@@ -52,9 +57,9 @@ input.age.threshold = 26
 
 
 #----jail related: 
-#network.decay.prob.main.file    = ../data/net_decay_prob_main.csv
-#network.decay.prob.casual.file  = ../data/net_decay_prob_casual.csv
+network.decay.prob.main.file    = ../data/net_decay_prob_main.csv
+network.decay.prob.casual.file  = ../data/net_decay_prob_casual.csv
 
-network.decay.prob.main.file    = /home/bmardestani/BARS/transmission_model/data/net_decay_prob_main.csv
-network.decay.prob.casual.file  = /home/bmardestani/BARS/transmission_model/data/net_decay_prob_casual.csv
+#network.decay.prob.main.file    = /home/bmardestani/BARS/transmission_model/data/net_decay_prob_main.csv
+#network.decay.prob.casual.file  = /home/bmardestani/BARS/transmission_model/data/net_decay_prob_casual.csv
 

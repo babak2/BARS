@@ -2,4 +2,15 @@
 .Rhistory
 .RData
 scratch/
-r_src/
+# r_src/
+
+# R generated data
+*.RDS
+
+# Old config backups
+*_old.props
+*_old.RDS
+
+# Output / logs
+*.log
+output*/

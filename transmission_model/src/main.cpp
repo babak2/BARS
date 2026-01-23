@@ -87,8 +87,13 @@ void run(std::string propsFile, int argc, char** argv) {
     if (Parameters::instance()->contains(MAIN_NETWORK_FILE)) {
         std::string main_file = Parameters::instance()->getStringParameter(MAIN_NETWORK_FILE);
         std::string casual_file = Parameters::instance()->getStringParameter(CASUAL_NETWORK_FILE);
+        std::cout << "BBB***************main_file: " << main_file <<'\n';
+        std::cout << "BBB***************casual_file: " << casual_file <<'\n';
         load_networks(R, main_file, casual_file);
     }
+
+    //std::cout << "BBB***************net_var: " << net_var <<'\n';
+    //std::cout << "BBB***************cas_net_var: " << cas_net_var <<'\n';
 
     // constructor should schedule the step method
     TransModel::Model model(R, net_var, cas_net_var);

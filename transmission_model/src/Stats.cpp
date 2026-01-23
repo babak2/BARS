@@ -10,8 +10,20 @@
 
 #include "Stats.h"
 #include "file_utils.h"
+#include "PrintHelper.h"
+
+#include "CSVWriter.h"
 
 namespace TransModel {
+
+CSVWriter csvwriter("count_debug.csv"); //temp csv writer for test and debugging
+std::vector<std::string> csv_header = {"tick", "vertex_count", 
+    "entries", "age_death", "inf_deaths", "asm_death", "cd4m_death", "total_death", "pop_change",
+    "uninfected",  "infected", "internal_via_trans", "external_inf", "entry_inf",
+    "total_inf", "total_internal_inf", "total_internal_inf_new", 
+    "prev", "prev100", "inc", "inc_y", 
+    };
+
 
 const std::string ARTEvent::header("\"tick\",\"p_id\",\"event_type\"");
 
@@ -118,13 +130,90 @@ void write_vector_out(std::vector<unsigned int>& vec, FileOutput& out) {
 }
 
 void Counts::writeTo(FileOutput& out) {
-    out << tick << "," << entries << "," << age_deaths << "," << infection_deaths << "," << asm_deaths;
+    //out << tick << "," << entries << "," << age_deaths << "," << infection_deaths << "," << asm_deaths;
     write_vector_out(internal_infected, out);
+    //PrintHelper::printVectorValues(internal_infected);
+    //PrintHelper::printVectorValuesWithSum(internal_infected);
+
     write_vector_out(external_infected, out);
     write_vector_out(infected_at_entry, out);
     write_vector_out(uninfected, out);
-    out << "," << main_edge_count << "," << casual_edge_count;
+    
+   // out << "," << main_edge_count << "," << casual_edge_count;
     write_vector_out(vertex_count, out);
+
+   /* std::cout << "---------tick:"  << tick << '\n';
+    std::cout << "vertex_count, ";
+    PrintHelper::printVectorValuesWithSum(vertex_count);
+    std::cout << "uninfected, ";
+    PrintHelper::printVectorValuesWithSum(uninfected); */
+    //std::cout << '\n';
+    float uninfec = std::accumulate(uninfected.begin(),uninfected.end(), 0);
+    float vertcount = std::accumulate(vertex_count.begin(),vertex_count.end(), 0);
+    int interalinf = std::accumulate(internal_infected.begin(),internal_infected.end(), 0); //infected_via_trans
+    int externalinf = std::accumulate(external_infected.begin(),external_infected.end(), 0);
+    int entryinf = std::accumulate(infected_at_entry.begin(),infected_at_entry.end(), 0);
+
+    /*std::cout << "vertcount: "  << vertcount << '\n';
+    
+    std::cout << "entries= "  << entries << '\n';
+    std::cout << "age_deaths= "  << age_deaths << ", ";
+    std::cout << "infection_deaths= "  << infection_deaths << ", ";
+    std::cout << "asm_deaths= "  << asm_deaths << ", ";
+    std::cout << "cd4m_deaths= "  << cd4m_deaths << ", ";
+    std::cout << "Total death= "  << age_deaths+infection_deaths+asm_deaths+cd4m_deaths << '\n';
+    std::cout << "pop change= "  << entries- (age_deaths+infection_deaths+asm_deaths+cd4m_deaths) << '\n';
+
+    std::cout << "uninfec: "  << uninfec << '\n';
+    std::cout << "vertcount - uninfec: "  << (vertcount-uninfec) << '\n';
+    std::cout << "interal_inf: "  << interalinf << ", ";
+    std::cout << "external_inf: "  << externalinf << ", ";
+    std::cout << "entry_inf: "  << entryinf << ", ";
+    std::cout << "Total infect: "  << interalinf+externalinf+entryinf << '\n';
+
+    std::cout << "total_internal_infected: "  << total_internal_infected << '\n';
+    std::cout << "total_internal_infected_new: "  << total_internal_infected_new << '\n'; */
+
+
+    float prev=0;
+    if (vertcount>0)
+       prev=((vertcount-uninfec)/vertcount);
+   // std::cout << "prev:"  << prev << ", " << prev*100<<'\n'; 
+
+    float inc=0;
+    if (uninfec>0)
+       inc=(interalinf/uninfec);
+    //std::cout << "inc:"  << inc << ", " <<inc*100 << ", " <<  365*inc*100 <<'\n';  
+
+    std::vector<float> vals;
+
+    vals.push_back(tick);
+    
+    vals.push_back(vertcount);
+    vals.push_back(entries);
+    vals.push_back(age_deaths);
+    vals.push_back(infection_deaths);
+    vals.push_back(asm_deaths);
+    vals.push_back(cd4m_deaths);
+    vals.push_back(age_deaths+infection_deaths+asm_deaths+cd4m_deaths);
+    vals.push_back(entries-(age_deaths+infection_deaths+asm_deaths+cd4m_deaths));
+
+    vals.push_back(uninfec);
+    vals.push_back(vertcount-uninfec);
+    vals.push_back(interalinf); //
+    vals.push_back(externalinf);
+    vals.push_back(entryinf);
+    vals.push_back(interalinf+externalinf+entryinf);
+    vals.push_back(total_internal_infected);
+    vals.push_back(total_internal_infected_new);
+
+    vals.push_back(prev);
+    vals.push_back(prev*100);
+    vals.push_back(inc);
+    vals.push_back(inc*100*356);
+
+    csvwriter.addRow(vals);
+
     out << "," << overlaps << "," << sex_acts << "," << casual_sex_acts << ","
     << sd_casual_sex_with_condom << "," << sd_casual_sex_without_condom << ","
     << sc_casual_sex_with_condom << "," << sc_casual_sex_without_condom << ","
@@ -155,6 +244,9 @@ Counts::Counts(int min_age, int max_age) :
                 uninfected_in_jail{0}
 
 {
+
+csvwriter.addHeader(csv_header);
+
 }
 
 void Counts::reset() {
@@ -256,6 +348,7 @@ Stats::Stats(std::shared_ptr<StatsWriterI<Counts>> counts, std::shared_ptr<Stats
         pd_recorder = std::make_shared<PersonDataRecorder>(person_data_fname, 1000);
     }
 }
+
 
 Stats::~Stats() {
 }

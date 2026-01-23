@@ -5,11 +5,16 @@
  *      Author: Babak
  */
 
+#include <iostream>
+#include <vector>
+
 #include "DiseaseParameters.h"
 #include "ViralLoadCalculator.h"
 #include "PrepParameters.h"
 #include "AdherenceCategory.h"
 #include "PrepStatus.h"
+#include "Network.h"
+
 
 
 #ifndef SRC_PRINTHELPER_H_
@@ -176,6 +181,31 @@ struct PrintHelper {
         std::cout << "    late_stage_viral_load: " << svlp.late_stage_viral_load << std::endl;
         std::cout << "    undetectable_viral_load: " << svlp.undetectable_viral_load << std::endl;
     }
+
+
+    static void printVectorValues(std::vector<unsigned int> vec) {
+        std::cout << "vector contains:";
+        for (unsigned i=0; i<vec.size(); i++)
+            std::cout << ' ' << vec.at(i);
+        std::cout << '\n';
+    } 
+
+    
+    static void printVectorValuesWithSum(std::vector<unsigned int> vec) {
+        std::cout << "vector contains:";
+        for (unsigned i=0; i<vec.size(); i++) {
+            std::cout << ' ' << vec.at(i);
+        }
+        std::cout << ", sum= " << std::accumulate(vec.begin(),vec.end(), 0);
+        std::cout << '\n';
+    } 
+
+    static void print_network(Network<Person>* net) {
+        std::cout << "network contains:" <<'\n';
+        std::cout << "network vertexCount= " << net->vertexCount() <<'\n';
+
+    }
+
     
 };
 

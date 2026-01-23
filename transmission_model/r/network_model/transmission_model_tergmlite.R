@@ -1,6 +1,5 @@
 rm(list=ls())
 
-
 suppressMessages(library(ergm))
 suppressMessages(library(tergmLite))
 suppressMessages(library(network))
@@ -40,4 +39,10 @@ nw_save <- function(net, fname, tick) {
   class(net) <- "network"
   set.network.attribute(net, "tick", tick)
   saveRDS(net, file=fname)
+  #write.graph(graph = g1, file = fname, format = "gml")
+  #write.csv(net,'net_bma.csv')
+  #saveNetwork(net, fname, selfcontained = TRUE)
+  #write_graph(g, "network_bma.txt", "edgelist")
+  #saveNetwork(net, name="network_bma", fname, type=c("table", "XGMML", "sif", "tab", "tgf", "net"))
+
 }

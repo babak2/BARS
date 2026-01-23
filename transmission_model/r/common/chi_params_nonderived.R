@@ -467,12 +467,12 @@ testing.prob.gte.9 <- "21-30|0.007177778"
 is.network.disruption.on <- FALSE
 is.care.disruption.on <- FALSE
 
-#incarceration.prob <- 0.0
-incarceration.prob <- 0.0000787
+incarceration.prob <- 0.0
+#incarceration.prob <- 0.0000787
 #incarceration.prob <- 0.002
 
-#incarceration.with.cji.prob <- 0.0
-incarceration.with.cji.prob <- 0.0005173
+incarceration.with.cji.prob <- 0.0
+#incarceration.with.cji.prob <- 0.0005173
 #incarceration.with.cji.prob <- 0.002
 
 jail.infection.rate.window.size <- 90
